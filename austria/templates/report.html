@@ -7,10 +7,22 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
+  <div class="nav">
+    <div class="brand">Climetrics <span class="chip">B2C Beta</span></div>
+    <div>
+      <a href="{{ url_for('home') }}">Neuer Report</a>
+      <a href="{{ url_for('index') }}">Charts</a>
+    </div>
+  </div>
   <header>
-    <h1>Standort-Report</h1>
+    <h1>Standort‑Report</h1>
     <p class="sub">lat={{ '%.3f'|format(lat) }}, lon={{ '%.3f'|format(lon) }} • {{ agg }} • {{ method }} • Einheit: {{ unit }}</p>
   </header>
+  <div class="toolbar">
+    <button class="tool" onclick="window.print()">Drucken / PDF</button>
+    <button class="tool primary" onclick="(async()=>{try{if(navigator.share){await navigator.share({title:'Klima‑Report', url:location.href});}else{await navigator.clipboard.writeText(location.href);alert('Link kopiert.');}}catch(e){console.log(e);}})()">Teilen</button>
+    <a class="tool" href="{{ url_for('home') }}">Neuer Report</a>
+  </div>
 
   <section class="cards">
     <h2>Kurzbericht</h2>
@@ -20,17 +32,15 @@
         <h3>{{ vlabel }}</h3>
         {% set v = summary.get(vkey, {}) %}
         {% if v %}
-          <ul>
-            {% for scen in ['ssp126','ssp245','ssp585'] %}
-              {% if v.get(scen) %}
-              <li>
-                <strong>{{ scen.upper() }}:</strong>
-                {{ v[scen]['late'] }} {{ v[scen]['units'] }} (2080–2099)
-                — Δ {{ v[scen]['delta'] }} vs. {{ v[scen]['early'] }} (2015–2034)
-              </li>
-              {% endif %}
-            {% endfor %}
-          </ul>
+          {% for scen in ['ssp126','ssp245','ssp585'] %}
+            {% if v.get(scen) %}
+              <div class="pill" style="margin:6px 0; display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                <span><strong>{{ scen.upper() }}</strong></span>
+                <span>{{ v[scen]['late'] }} {{ v[scen]['units'] }} (2080–2099)</span>
+                <span class="chip">Δ {{ v[scen]['delta'] }} vs. {{ v[scen]['early'] }}</span>
+              </div>
+            {% endif %}
+          {% endfor %}
         {% else %}
           <p class="muted">Keine Daten gefunden.</p>
         {% endif %}
@@ -77,4 +87,3 @@
   </footer>
 </body>
 </html>
-

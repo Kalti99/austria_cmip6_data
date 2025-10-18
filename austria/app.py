@@ -1,7 +1,7 @@
 ﻿import os
 import numpy as np
 import xarray as xr
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import plotly.graph_objects as go
 
 # Optional SciPy for linear interpolation
@@ -338,6 +338,10 @@ def create_app() -> Flask:
             year_bounds=year_bounds,
             files_present={k: os.path.exists(v) for k, v in _files_for_var(var_key).items()},
         )
+
+    @app.route("/")
+    def root():
+        return redirect(url_for("home"))
 
     @app.route("/home")
     def home():
