@@ -1,4 +1,4 @@
-import os
+﻿import os
 import numpy as np
 import xarray as xr
 from flask import Flask, render_template, request
@@ -20,6 +20,26 @@ SCENARIOS = {
     "ssp585": os.path.join(BASE_DIR, "meantemp_ssp585_austria.nc"),
 }
 
+# Additional per-variable datasets (tas = temperature, sfcWind = wind speed, pr = precipitation)
+DATASETS = {
+    "tas": SCENARIOS,
+    "sfcWind": {
+        "ssp126": os.path.join(BASE_DIR, "sfcWind_ssp126_austria.nc"),
+        "ssp245": os.path.join(BASE_DIR, "sfcWind_ssp245_austria.nc"),
+        "ssp585": os.path.join(BASE_DIR, "sfcWind_ssp585_austria.nc"),
+    },
+    "pr": {
+        "ssp126": os.path.join(BASE_DIR, "pr_ssp126_austria.nc"),
+        "ssp245": os.path.join(BASE_DIR, "pr_ssp245_austria.nc"),
+        "ssp585": os.path.join(BASE_DIR, "pr_ssp585_austria.nc"),
+    },
+}
+
+VAR_LABELS = {"tas": "Temperatur", "sfcWind": "Windgeschwindigkeit", "pr": "Niederschlag"}
+
+def _files_for_var(var_key: str) -> dict:
+    return DATASETS.get(var_key, DATASETS["tas"])  # default to temperature
+
 
 def _find_var(ds: xr.Dataset) -> str:
     if "tas" in ds.data_vars:
@@ -34,11 +54,26 @@ def _to_celsius(da: xr.DataArray) -> xr.DataArray:
     units = (da.attrs.get("units") or "").lower()
     if units in ("k", "kelvin"):
         out = da - 273.15
-        out.attrs["units"] = "°C"
+        out.attrs["units"] = "Â°C"
         return out
-    if units in ("c", "degc", "°c", "celsius"):
-        da.attrs["units"] = "°C"
+    if units in ("c", "degc", "Â°c", "celsius"):
+        da.attrs["units"] = "Â°C"
         return da
+    return da
+
+
+def _convert_by_var(varname: str, da: xr.DataArray, unit: str = "C") -> xr.DataArray:
+    # Temperature (tas): Kelvin -> Â°C if requested
+    if varname == "tas":
+        return _to_celsius(da) if unit.upper() == "C" else da
+    # Precipitation (pr): convert flux kg m-2 s-1 to mm/day if detected
+    if varname == "pr":
+        units = (da.attrs.get("units") or "").lower().replace("**", "^")
+        if ("kg" in units and "m-2" in units and "s-1" in units) or ("kg m^-2 s^-1" in units) or ("kg m-2 s-1" in units.replace(" ","")):
+            out = da * 86400.0
+            out.attrs["units"] = "mm/day"
+            return out
+    # Wind (sfcWind): typically m s-1; keep as-is
     return da
 
 
@@ -47,8 +82,7 @@ def _domain_mean_series(path: str, agg: str = "monthly", unit: str = "C"):
     var = _find_var(ds)
     da = ds[var]
 
-    if unit.upper() == "C":
-        da = _to_celsius(da)
+    da = _convert_by_var(var, da, unit=unit)
 
     weights = np.cos(np.deg2rad(ds["lat"]))
     mean_ts = da.weighted(weights).mean(dim=("lat", "lon"))
@@ -77,8 +111,7 @@ def _point_series(path: str, lat: float, lon: float, agg: str = "monthly", unit:
     var = _find_var(ds)
     da = ds[var]
 
-    if unit.upper() == "C":
-        da = _to_celsius(da)
+    da = _convert_by_var(var, da, unit=unit)
 
     # Interpolate or pick nearest grid point (avoid SciPy requirement for nearest)
     method = method if method in ("nearest", "linear") else "nearest"
@@ -109,11 +142,11 @@ def _point_series(path: str, lat: float, lon: float, agg: str = "monthly", unit:
     return x_plot, y, units_label, t_num
 
 
-def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None, lon: float | None = None, method: str = "nearest") -> go.Figure:
+def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None, lon: float | None = None, method: str = "nearest", var_key: str = "tas") -> go.Figure:
     fig = go.Figure()
     colors = {"ssp126": "#2ca02c", "ssp245": "#1f77b4", "ssp585": "#d62728"}
     units_label = ""
-    for scen, path in SCENARIOS.items():
+    for scen, path in _files_for_var(var_key).items():
         if not os.path.exists(path):
             continue
         if lat is not None and lon is not None:
@@ -130,7 +163,7 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
             a, b = np.polyfit(t_num[msk], y[msk], 1)  # slope per year
             y_fit = a * t_num + b
             slope_decade = a * 10.0
-            units_txt = units_label or ("°C" if unit.upper() == "C" else "K")
+            units_txt = units_label or ("Â°C" if unit.upper() == "C" else "K")
             fig.add_trace(
                 go.Scatter(
                     x=x,
@@ -142,9 +175,9 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
             )
 
     title_text = (
-        f"Austria point temperature @ lat={lat:.3f}, lon={lon:.3f} — {agg} ({unit.upper()})"
+        f"Austria point temperature @ lat={lat:.3f}, lon={lon:.3f} â€” {agg} ({unit.upper()})"
         if lat is not None and lon is not None
-        else f"Austria mean near-surface air temperature — {agg} ({unit.upper()})"
+        else f"Austria mean near-surface air temperature â€” {agg} ({unit.upper()})"
     )
     fig.update_layout(
         title=title_text,
@@ -154,12 +187,16 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
         legend=dict(orientation="h", y=1.1),
         margin=dict(l=40, r=20, t=60, b=40),
     )
+    # Override title with variable-aware label
+    var_label = VAR_LABELS.get(var_key, var_key)
+    where_txt = (f"Punkt lat={lat:.3f}, lon={lon:.3f}" if lat is not None and lon is not None else "Ã–sterreichâ€‘Mittel")
+    fig.update_layout(title=f"{var_label} â€” {where_txt} â€” {agg}")
     return fig
 
 
-def _year_bounds() -> tuple[int, int] | None:
-    # Inspect the first present file to extract available year range
-    for _, path in SCENARIOS.items():
+def _year_bounds_for(var_key: str = "tas") -> tuple[int, int] | None:
+    # Inspect the first present file for selected variable to extract available year range
+    for _, path in _files_for_var(var_key).items():
         if os.path.exists(path):
             ds = xr.open_dataset(path)
             t = ds["time"]
@@ -171,14 +208,14 @@ def _year_bounds() -> tuple[int, int] | None:
     return None
 
 
-def build_year_detail_figure(year: int, unit: str = "C", lat: float | None = None, lon: float | None = None, method: str = "nearest") -> go.Figure:
+def build_year_detail_figure(year: int, unit: str = "C", lat: float | None = None, lon: float | None = None, method: str = "nearest", var_key: str = "tas") -> go.Figure:
     # Shows monthly values within the selected year for each scenario (at point or domain mean)
     fig = go.Figure()
     colors = {"ssp126": "#2ca02c", "ssp245": "#1f77b4", "ssp585": "#d62728"}
-    months_labels = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
+    months_labels = ["Jan", "Feb", "MÃ¤r", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
     units_label = ""
 
-    for scen, path in SCENARIOS.items():
+    for scen, path in _files_for_var(var_key).items():
         if not os.path.exists(path):
             continue
         if lat is not None and lon is not None:
@@ -187,8 +224,8 @@ def build_year_detail_figure(year: int, unit: str = "C", lat: float | None = Non
             ds = xr.open_dataset(path)
             var = _find_var(ds)
             da = ds[var]
-            if unit.upper() == "C":
-                da = _to_celsius(da)
+
+
             # Safe selection/interpolation without requiring SciPy
             _method = method if method in ("nearest", "linear") else "nearest"
             if _method == "linear" and not HAS_SCIPY:
@@ -210,8 +247,8 @@ def build_year_detail_figure(year: int, unit: str = "C", lat: float | None = Non
             ds = xr.open_dataset(path)
             var = _find_var(ds)
             da = ds[var]
-            if unit.upper() == "C":
-                da = _to_celsius(da)
+
+
             weights = np.cos(np.deg2rad(ds["lat"]))
             mean_ts = da.weighted(weights).mean(dim=("lat", "lon"))
             ts_year = mean_ts.where(mean_ts["time"].dt.year == year, drop=True)
@@ -233,7 +270,7 @@ def build_year_detail_figure(year: int, unit: str = "C", lat: float | None = Non
         )
 
     fig.update_layout(
-        title=(f"Monatswerte {year} — Punkt lat={lat:.3f}, lon={lon:.3f}" if lat is not None and lon is not None else f"Monatswerte {year} — Österreich-Mittel"),
+        title=(f"Monatswerte {year} â€” Punkt lat={lat:.3f}, lon={lon:.3f}" if lat is not None and lon is not None else f"Monatswerte {year} â€” Ã–sterreich-Mittel"),
         xaxis=dict(title="Monat", tickmode="array", tickvals=list(range(1,13)), ticktext=months_labels),
         yaxis_title=f"Temperature [{units_label}]" if units_label else "Temperature",
         template="plotly_white",
@@ -252,6 +289,9 @@ def create_app() -> Flask:
         if agg not in ("monthly", "annual"):
             agg = "monthly"
         unit = request.args.get("unit", "C").upper()
+        var_key = request.args.get("var", "tas")
+        if var_key not in DATASETS.keys():
+            var_key = "tas"
         if unit not in ("C", "K"):
             unit = "C"
         # Lat/Lon inputs (defaults to Vienna approx.)
@@ -272,7 +312,7 @@ def create_app() -> Flask:
             method = "nearest"
 
         # Year selection and secondary figure (monthly breakdown for selected year)
-        year_bounds = _year_bounds()
+        year_bounds = _year_bounds_for(var_key)
         year_default = year_bounds[0] if year_bounds else None
         year_param = request.args.get("year", str(year_default) if year_default else "")
         try:
@@ -282,12 +322,12 @@ def create_app() -> Flask:
         if year is not None and year_bounds:
             year = max(year_bounds[0], min(year_bounds[1], year))
 
-        fig = build_figure(agg=agg, unit=unit, lat=lat, lon=lon, method=method)
+        fig = build_figure(agg=agg, unit=unit, lat=lat, lon=lon, method=method, var_key=var_key)
         fig_html = fig.to_html(full_html=False, include_plotlyjs="cdn")
 
         fig2_html = None
         if year is not None:
-            fig2 = build_year_detail_figure(year=year, unit=unit, lat=lat, lon=lon, method=method)
+            fig2 = build_year_detail_figure(year=year, unit=unit, lat=lat, lon=lon, method=method, var_key=var_key)
             fig2_html = fig2.to_html(full_html=False, include_plotlyjs=False)
 
         return render_template(
@@ -301,7 +341,7 @@ def create_app() -> Flask:
             method=method,
             year=year,
             year_bounds=year_bounds,
-            files_present={k: os.path.exists(v) for k, v in SCENARIOS.items()},
+            files_present={k: os.path.exists(v) for k, v in _files_for_var(var_key).items()},
         )
 
     return app

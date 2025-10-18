@@ -15,6 +15,14 @@
   <section class="controls">
     <form method="get" action="/">
       <label>
+        Variable
+        <select name="var">
+          <option value="tas" {{ 'selected' if var_key == 'tas' else '' }}>Temperatur</option>
+          <option value="sfcWind" {{ 'selected' if var_key == 'sfcWind' else '' }}>Wind</option>
+          <option value="pr" {{ 'selected' if var_key == 'pr' else '' }}>Niederschlag</option>
+        </select>
+      </label>
+      <label>
         Aggregation
         <select name="agg">
           <option value="monthly" {{ 'selected' if agg == 'monthly' else '' }}>Monatlich</option>
