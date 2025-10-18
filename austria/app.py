@@ -291,8 +291,8 @@ def build_year_detail_figure(year: int, unit: str = "C", lat: float | None = Non
 def create_app() -> Flask:
     app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"), static_folder=os.path.join(BASE_DIR, "static"))
 
-    @app.route("/")
-    def index():
+    @app.route("/charts")
+    def charts():
         agg = request.args.get("agg", "annual").lower()
         if agg not in ("monthly", "annual"):
             agg = "monthly"

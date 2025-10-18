@@ -1,70 +1,78 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CMIP6 Österreich — Temperatur</title>
+  <title>Climetrics – Charts</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
+  <div class=\"nav\">
+    <div class=\"brand\"><a href=\"{{ url_for('home') }}\"><img src=\"{{ url_for('logo') }}\" alt=\"Logo\" style=\"height:24px\"></a><span class=\"title\">Climetrics</span> <span class=\"chip\">B2C Beta</span></div>
+    <div>
+      <a href=\"{{ url_for('home') }}\">Start</a>
+      <a href=\"{{ url_for('impressum') }}\">Impressum</a>
+    </div>
+  </div>
+
   <header>
-    <h1>CMIP6: Österreich Mitteltemperatur</h1>
-    <p class="sub">Near-surface air temperature — zugeschnitten auf Österreich</p>
+    <h1>Charts – Österreich</h1>
+    <p class=\"sub\">Zeitreihen und Jahres-/Monatsansichten für Temperatur, Wind und Niederschlag.</p>
   </header>
 
-  <section class="controls">
-    <form method="get" action="/">
+  <section class=\"controls\">
+    <form method=\"get\" action=\"{{ url_for('charts') }}\">
       <label>
         Variable
-        <select name="var">
-          <option value="tas" {{ 'selected' if var_key == 'tas' else '' }}>Temperatur</option>
-          <option value="sfcWind" {{ 'selected' if var_key == 'sfcWind' else '' }}>Wind</option>
-          <option value="pr" {{ 'selected' if var_key == 'pr' else '' }}>Niederschlag</option>
+        <select name=\"var\">
+          <option value=\"tas\" {{ 'selected' if var_key == 'tas' else '' }}>Temperatur</option>
+          <option value=\"sfcWind\" {{ 'selected' if var_key == 'sfcWind' else '' }}>Wind</option>
+          <option value=\"pr\" {{ 'selected' if var_key == 'pr' else '' }}>Niederschlag</option>
         </select>
       </label>
       <label>
         Aggregation
-        <select name="agg">
-          <option value="monthly" {{ 'selected' if agg == 'monthly' else '' }}>Monatlich</option>
-          <option value="annual" {{ 'selected' if agg == 'annual' else '' }}>Jährlich</option>
+        <select name=\"agg\">
+          <option value=\"monthly\" {{ 'selected' if agg == 'monthly' else '' }}>Monatlich</option>
+          <option value=\"annual\" {{ 'selected' if agg == 'annual' else '' }}>Jährlich</option>
         </select>
       </label>
       <label>
         Einheit
-        <select name="unit">
-          <option value="C" {{ 'selected' if unit == 'C' else '' }}>°C</option>
-          <option value="K" {{ 'selected' if unit == 'K' else '' }}>K</option>
+        <select name=\"unit\">
+          <option value=\"C\" {{ 'selected' if unit == 'C' else '' }}>°C</option>
+          <option value=\"K\" {{ 'selected' if unit == 'K' else '' }}>K</option>
         </select>
       </label>
       <label>
         Breitengrad (lat)
-        <input type="number" step="0.001" name="lat" value="{{ '%.3f'|format(lat) }}" min="46" max="50" />
+        <input type=\"number\" step=\"0.001\" name=\"lat\" value=\"{{ '%.3f'|format(lat) }}\" min=\"46\" max=\"50\" />
       </label>
       <label>
         Längengrad (lon)
-        <input type="number" step="0.001" name="lon" value="{{ '%.3f'|format(lon) }}" min="9" max="18" />
+        <input type=\"number\" step=\"0.001\" name=\"lon\" value=\"{{ '%.3f'|format(lon) }}\" min=\"9\" max=\"18\" />
       </label>
       <label>
         Methode
-        <select name="method">
-          <option value="nearest" {{ 'selected' if method == 'nearest' else '' }}>Nächster Gitterpunkt</option>
-          <option value="linear" {{ 'selected' if method == 'linear' else '' }}>Linear (Interpolation)</option>
+        <select name=\"method\">
+          <option value=\"nearest\" {{ 'selected' if method == 'nearest' else '' }}>Nächster Gitterpunkt</option>
+          <option value=\"linear\" {{ 'selected' if method == 'linear' else '' }}>Linear (Interpolation)</option>
         </select>
       </label>
       <label>
         Jahr
         {% if year_bounds %}
-          <input type="number" name="year" value="{{ year if year is not none else '' }}" min="{{ year_bounds[0] }}" max="{{ year_bounds[1] }}" />
-          <span class="hint">({{ year_bounds[0] }}–{{ year_bounds[1] }})</span>
+          <input type=\"number\" name=\"year\" value=\"{{ year if year is not none else '' }}\" min=\"{{ year_bounds[0] }}\" max=\"{{ year_bounds[1] }}\" />
+          <span class=\"hint\">({{ year_bounds[0] }}–{{ year_bounds[1] }})</span>
         {% else %}
-          <input type="number" name="year" value="{{ year if year is not none else '' }}" />
+          <input type=\"number\" name=\"year\" value=\"{{ year if year is not none else '' }}\" />
         {% endif %}
       </label>
-      <button type="submit">Aktualisieren</button>
+      <button type=\"submit\">Aktualisieren</button>
     </form>
   </section>
 
-  <section class="status">
+  <section class=\"status\">
     <ul>
       <li>ssp126: {{ 'vorhanden' if files_present.get('ssp126') else 'fehlt' }}</li>
       <li>ssp245: {{ 'vorhanden' if files_present.get('ssp245') else 'fehlt' }}</li>
@@ -73,28 +81,22 @@
     </ul>
   </section>
 
-  <section class="chart">
+  <section class=\"chart\">
     {{ fig_html | safe }}
   </section>
 
   {% if fig2_html %}
-  <section class="chart">
+  <section class=\"chart\">
     {{ fig2_html | safe }}
   </section>
   {% endif %}
 
   <footer>
     <p>
-      <a href="{{ url_for('home') }}">Zur Startseite</a> •
-      <a href="{{ url_for('impressum') }}">Impressum</a> •
-      Daten: CMIP6 (Copernicus C3S). Modelle u. a. AWI-CM-1-1-MR — Details siehe NetCDF-Metadaten.
+      <strong>Climetrics</strong> • <a href=\"{{ url_for('home') }}\">Zur Startseite</a> •
+      <a href=\"{{ url_for('impressum') }}\">Impressum</a> •
+      Daten: CMIP6 (Copernicus C3S). Modelle u. a. AWI‑CM‑1‑1‑MR — Details siehe NetCDF‑Metadaten.
     </p>
   </footer>
 </body>
 </html>
-  <div class="nav">
-    <div class="brand"><a href="{{ url_for('home') }}"><img src="{{ url_for('logo') }}" alt="Logo" style="height:24px"></a> <span class="chip">B2C Beta</span></div>
-    <div>
-      <a href="{{ url_for('home') }}">Start</a>
-    </div>
-  </div>
