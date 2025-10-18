@@ -18,6 +18,11 @@
     <h1>Standort‑Report</h1>
     <p class="sub">lat={{ '%.3f'|format(lat) }}, lon={{ '%.3f'|format(lon) }} • {{ agg }} • {{ method }} • Einheit: {{ unit }}</p>
   </header>
+  <section class="controls" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+    <div class="pill" style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:#2ca02c;display:inline-block;border-radius:999px"></span> SSP1‑2.6 (niedrige Emissionen)</div>
+    <div class="pill" style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:#1f77b4;display:inline-block;border-radius:999px"></span> SSP2‑4.5 (mittlere Emissionen)</div>
+    <div class="pill" style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;background:#d62728;display:inline-block;border-radius:999px"></span> SSP5‑8.5 (hohe Emissionen)</div>
+  </section>
   <div class="toolbar">
     <button class="tool" onclick="window.print()">Drucken / PDF</button>
     <button class="tool primary" onclick="(async()=>{try{if(navigator.share){await navigator.share({title:'Klima‑Report', url:location.href});}else{await navigator.clipboard.writeText(location.href);alert('Link kopiert.');}}catch(e){console.log(e);}})()">Teilen</button>
@@ -34,13 +39,18 @@
         {% if v %}
           {% for scen in ['ssp126','ssp245','ssp585'] %}
             {% if v.get(scen) %}
-              <div class="pill" style="margin:6px 0; display:flex; justify-content:space-between; gap:12px; align-items:center;">
-                <span><strong>{{ scen.upper() }}</strong></span>
-                <span>{{ v[scen]['late'] }} {{ v[scen]['units'] }} (2080–2099)</span>
-                <span class="chip">Δ {{ v[scen]['delta'] }} vs. {{ v[scen]['early'] }}</span>
+              {% set col = '#2ca02c' if scen=='ssp126' else ('#1f77b4' if scen=='ssp245' else '#d62728') %}
+              {% set delta = v[scen]['delta'] %}
+              {% set arrow = '🔺' if delta>0 else ('🔻' if delta<0 else '⟷') %}
+              {% set arrowCol = '#d62728' if delta>0 else ('#1f77b4' if delta<0 else '#64748b') %}
+              <div class="pill" style="margin:6px 0; display:flex; justify-content:space-between; gap:12px; align-items:center; border-left:6px solid {{ col }};">
+                <span style="font-weight:700; color: {{ col }}">{{ scen.upper() }}</span>
+                <span style="font-weight:800">{{ v[scen]['late'] }} {{ v[scen]['units'] }}</span>
+                <span class="chip" style="color:{{ arrowCol }}">{{ arrow }} Δ {{ delta }} vs. {{ v[scen]['early'] }}</span>
               </div>
             {% endif %}
           {% endfor %}
+          <p class="muted" style="margin:8px 0 0 0">Unter Szenario SSP585 ist häufig die stärkste Zunahme zu erwarten; grün/blau/rot entsprechen auch den Diagrammfarben.</p>
         {% else %}
           <p class="muted">Keine Daten gefunden.</p>
         {% endif %}

@@ -28,10 +28,18 @@
     <form id="form" class="panel" method="get" action="{{ url_for('report') }}">
       <h2>Dein Standort</h2>
       <div class="row">
-        <label>Breitengrad (lat)
+        <label>Ort eingeben (Auto‑Vervollständigung)
+          <input id="place" type="text" placeholder="z. B. Wien, Salzburg, Innsbruck" autocomplete="off" />
+        </label>
+        <div class="muted" style="align-self:end">Tipp: Klicke alternativ auf die Karte</div>
+      </div>
+      <div id="suggestions" class="suggestions"></div>
+      <div id="map" class="map"></div>
+      <div class="row">
+        <label>Breitengrad (z. B. 48.2 °N)
           <input type="number" step="0.001" name="lat" value="{{ '%.3f'|format(lat) }}" min="46" max="50" />
         </label>
-        <label>Längengrad (lon)
+        <label>Längengrad (z. B. 16.37 °E)
           <input type="number" step="0.001" name="lon" value="{{ '%.3f'|format(lon) }}" min="9" max="18" />
         </label>
       </div>
@@ -56,17 +64,73 @@
               <option value="K" {{ 'selected' if unit == 'K' else '' }}>K</option>
             </select>
           </label>
-          <label>Jahr (optional)
+          <label>Zeitraum oder Jahr (optional)
             <input type="number" name="year" value="{{ year }}" />
           </label>
         </div>
       </details>
       <div class="actions">
-        <button type="submit">Report erstellen</button>
-        <a class="tool" href="{{ url_for('index') }}">Zur Chart‑Ansicht</a>
+        <button id="btnSubmit" type="submit">📊 Standort‑Report anzeigen</button>
+        <a class="tool" href="{{ url_for('index') }}">Diagramme direkt ansehen</a>
       </div>
       <p class="muted" style="margin-top:10px">Gültiger Bereich: Österreich (lat 46–50, lon 9–18). „Linear“ fällt ohne SciPy automatisch auf „nearest“ zurück.</p>
     </form>
   </section>
+
+  <div id="loading" class="loading hidden">
+    <div class="spinner"></div>
+    <div>Analysiere Daten für deinen Standort…</div>
+  </div>
+
+  <!-- Leaflet & Geocoding Script -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const form = document.getElementById('form');
+    const loading = document.getElementById('loading');
+    form.addEventListener('submit', () => { loading.classList.remove('hidden'); });
+
+    // Build Leaflet map limited to Austria bounds
+    const map = L.map('map', { zoomControl: true }).setView([47.5, 13.3], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OSM' }).addTo(map);
+    const atBounds = [[46.0, 9.0], [50.0, 18.0]];
+    map.fitBounds(atBounds);
+    let marker = null;
+    function setLatLon(lat, lon) {
+      const latInput = form.querySelector('input[name="lat"]');
+      const lonInput = form.querySelector('input[name="lon"]');
+      latInput.value = Number(lat).toFixed(3);
+      lonInput.value = Number(lon).toFixed(3);
+      if (marker) { marker.setLatLng([lat, lon]); } else { marker = L.marker([lat, lon]).addTo(map); }
+    }
+    map.on('click', (e) => { setLatLon(e.latlng.lat, e.latlng.lng); });
+
+    // Geocoding autocomplete via Nominatim
+    const place = document.getElementById('place');
+    const sugg = document.getElementById('suggestions');
+    let timer;
+    place.addEventListener('input', () => {
+      const q = place.value.trim();
+      clearTimeout(timer);
+      if (q.length < 3) { sugg.innerHTML=''; return; }
+      timer = setTimeout(async () => {
+        try {
+          const url = `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=at&q=${encodeURIComponent(q)}`;
+          const resp = await fetch(url, { headers: { 'Accept-Language': 'de' } });
+          const data = await resp.json();
+          sugg.innerHTML = data.map(d => `<div class='suggest-item' data-lat='${d.lat}' data-lon='${d.lon}'>${d.display_name}</div>`).join('');
+        } catch (e) { console.log(e); }
+      }, 250);
+    });
+    sugg.addEventListener('click', (e) => {
+      const item = e.target.closest('.suggest-item');
+      if (!item) return;
+      const lat = parseFloat(item.getAttribute('data-lat'));
+      const lon = parseFloat(item.getAttribute('data-lon'));
+      setLatLon(lat, lon);
+      map.setView([lat, lon], 10);
+      sugg.innerHTML='';
+    });
+  </script>
 </body>
 </html>

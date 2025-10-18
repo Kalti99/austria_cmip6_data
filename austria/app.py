@@ -164,7 +164,7 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
             a, b = np.polyfit(t_num[msk], y[msk], 1)  # slope per year
             y_fit = a * t_num + b
             slope_decade = a * 10.0
-            units_txt = units_label or ("Â°C" if unit.upper() == "C" else "K")
+            units_txt = units_label or ("°C" if unit.upper() == "C" else "K")
             fig.add_trace(
                 go.Scatter(
                     x=x,
@@ -175,17 +175,29 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
                 )
             )
 
+    # Titles and labels (simplified for clarity)
     var_label = VAR_LABELS.get(var_key, var_key)
     where_txt = (f"Punkt lat={lat:.3f}, lon={lon:.3f}" if (lat is not None and lon is not None) else "Österreich‑Mittel")
+    if var_key == "tas":
+        ytitle = "Temperatur (°C, Jahresmittel)" if agg == "annual" else "Temperatur (°C, monatlich)"
+    elif var_key == "sfcWind":
+        ytitle = "Windgeschwindigkeit (m/s)"
+    else:
+        ytitle = "Niederschlag (mm/Tag)"
     fig.update_layout(
         title=f"{var_label} — {where_txt} — {agg}",
         xaxis_title="Zeit" if agg == "monthly" else "Jahr",
-        yaxis_title=(f"Wert [{units_label}]" if units_label else "Wert"),
+        yaxis_title=ytitle,
         template="plotly_white",
         legend=dict(orientation="h", y=1.1),
         margin=dict(l=40, r=20, t=60, b=40),
     )
-    return fig
+    try:
+        import datetime as _dt
+        if agg == "annual":
+            fig.add_vline(x=_dt.datetime.now().year, line_width=1, line_dash="dot", line_color="#94a3b8")
+    except Exception:
+        pass
     return fig
 
 
@@ -459,3 +471,6 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     debug = os.environ.get("FLASK_DEBUG", "0") == "1"
     app.run(host="0.0.0.0", port=port, debug=debug)
+
+
+
