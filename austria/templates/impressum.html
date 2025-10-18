@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Impressum</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="nav">
+    <div class="brand"><a href="{{ url_for('home') }}"><img src="{{ url_for('logo') }}" alt="Logo" style="height:24px"></a> <span class="chip">B2C Beta</span></div>
+    <div>
+      <a href="{{ url_for('home') }}">Start</a>
+      <a href="{{ url_for('index') }}">Charts</a>
+      <a href="{{ url_for('report') }}?lat=48.208&lon=16.374&agg=annual&unit=C&method=nearest">Beispiel‑Report</a>
+    </div>
+  </div>
+
+  <header>
+    <h1>Impressum</h1>
+    <p class="sub">Angaben gemäß § 5 ECG</p>
+  </header>
+
+  <section class="grid">
+    <div class="card">
+      <h3>Betreiber</h3>
+      <p>
+        Climetrics (Beispiel)
+        <br/>Musterstraße 1, 1010 Wien
+        <br/>Österreich
+      </p>
+      <p>
+        E‑Mail: info@example.com
+        <br/>UID: ATU00000000
+      </p>
+    </div>
+    <div class="card">
+      <h3>Quelle der Klimadaten</h3>
+      <p>
+        Copernicus Climate Change Service (C3S), CMIP6 Datensätze
+        <br/>
+        Verarbeitung: Zuschneiden auf Österreich, Punkt-Extraktion, Aggregationen.
+      </p>
+      <p class="muted">
+        Genauere Informationen zu Variablen und Einheiten siehe NetCDF‑Metadaten (tas, pr, sfcWind; AWI‑CM‑1‑1‑MR u. a.).
+      </p>
+      <p>
+        <a href="https://cds.climate.copernicus.eu/" target="_blank">Copernicus Climate Data Store</a>
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <p>
+      <a href="{{ url_for('home') }}">Zur Startseite</a> •
+      Daten: CMIP6 (Copernicus C3S) — <a href="https://cds.climate.copernicus.eu/" target="_blank">CDS</a>.
+    </p>
+  </footer>
+</body>
+</html>
+

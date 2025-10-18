@@ -12,6 +12,7 @@
     <div>
       <a href="{{ url_for('home') }}">Start</a>
       <a href="{{ url_for('index') }}">Charts</a>
+      <a href="{{ url_for('impressum') }}">Impressum</a>
     </div>
   </div>
   <header>
@@ -95,7 +96,7 @@
   <footer>
     <p>
       <a href="{{ url_for('home') }}">Zur Startseite</a> •
-      <a href="#" onclick="alert('Impressum: Muster GmbH, Wien.'); return false;">Impressum</a> •
+      <a href="{{ url_for('impressum') }}">Impressum</a> •
       Daten: CMIP6 (Copernicus C3S) — <a href="https://cds.climate.copernicus.eu/" target="_blank">Copernicus Climate Data Store</a>.
       Verwendete Modelle: AWI-CM-1-1-MR (Wind, Niederschlag). Temperaturvariable tas; genaue Quelle siehe NetCDF-Metadaten.
     </p>

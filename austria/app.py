@@ -387,6 +387,10 @@ def create_app() -> Flask:
         """
         return Response(svg, mimetype="image/svg+xml")
 
+    @app.route("/impressum")
+    def impressum():
+        return render_template("impressum.html")
+
     @app.route("/home")
     def home():
         # Landing form with map; defaults to annual aggregation
