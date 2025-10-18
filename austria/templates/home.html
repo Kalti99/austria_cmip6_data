@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMIP6 Österreich — Standort wählen</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header>
+    <h1>Standort auswählen</h1>
+    <p class="sub">Gib Koordinaten ein und erstelle einen leicht verständlichen Report.</p>
+  </header>
+
+  <section class="controls">
+    <form method="get" action="{{ url_for('report') }}">
+      <label>
+        Breitengrad (lat)
+        <input type="number" step="0.001" name="lat" value="{{ '%.3f'|format(lat) }}" min="46" max="50" />
+      </label>
+      <label>
+        Längengrad (lon)
+        <input type="number" step="0.001" name="lon" value="{{ '%.3f'|format(lon) }}" min="9" max="18" />
+      </label>
+      <label>
+        Methode
+        <select name="method">
+          <option value="nearest" {{ 'selected' if method == 'nearest' else '' }}>Nächster Gitterpunkt</option>
+          <option value="linear" {{ 'selected' if method == 'linear' else '' }}>Linear (Interpolation)</option>
+        </select>
+      </label>
+      <label>
+        Aggregation
+        <select name="agg">
+          <option value="monthly" {{ 'selected' if agg == 'monthly' else '' }}>Monatlich</option>
+          <option value="annual" {{ 'selected' if agg == 'annual' else '' }}>Jährlich</option>
+        </select>
+      </label>
+      <label>
+        Einheit (Temp.)
+        <select name="unit">
+          <option value="C" {{ 'selected' if unit == 'C' else '' }}>°C</option>
+          <option value="K" {{ 'selected' if unit == 'K' else '' }}>K</option>
+        </select>
+      </label>
+      <label>
+        Jahr (optional)
+        <input type="number" name="year" value="{{ year }}" />
+      </label>
+      <button type="submit">Report erstellen</button>
+    </form>
+  </section>
+
+  <section class="status">
+    <p class="muted">Gültiger Bereich: Österreich (lat 46–50, lon 9–18). Methode „linear“ fällt ohne SciPy automatisch auf „nearest“ zurück.</p>
+  </section>
+</body>
+</html>
+

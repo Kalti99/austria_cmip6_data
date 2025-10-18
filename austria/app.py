@@ -36,6 +36,7 @@ DATASETS = {
 }
 
 VAR_LABELS = {"tas": "Temperatur", "sfcWind": "Windgeschwindigkeit", "pr": "Niederschlag"}
+SCEN_LIST = ("ssp126", "ssp245", "ssp585")
 
 def _files_for_var(var_key: str) -> dict:
     return DATASETS.get(var_key, DATASETS["tas"])  # default to temperature
@@ -174,23 +175,17 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
                 )
             )
 
-    title_text = (
-        f"Austria point temperature @ lat={lat:.3f}, lon={lon:.3f} â€” {agg} ({unit.upper()})"
-        if lat is not None and lon is not None
-        else f"Austria mean near-surface air temperature â€” {agg} ({unit.upper()})"
-    )
+    var_label = VAR_LABELS.get(var_key, var_key)
+    where_txt = (f"Punkt lat={lat:.3f}, lon={lon:.3f}" if (lat is not None and lon is not None) else "Österreich‑Mittel")
     fig.update_layout(
-        title=title_text,
-        xaxis_title="Time" if agg == "monthly" else "Year",
-        yaxis_title=f"Temperature [{units_label}]" if units_label else "Temperature",
+        title=f"{var_label} — {where_txt} — {agg}",
+        xaxis_title="Zeit" if agg == "monthly" else "Jahr",
+        yaxis_title=(f"Wert [{units_label}]" if units_label else "Wert"),
         template="plotly_white",
         legend=dict(orientation="h", y=1.1),
         margin=dict(l=40, r=20, t=60, b=40),
     )
-    # Override title with variable-aware label
-    var_label = VAR_LABELS.get(var_key, var_key)
-    where_txt = (f"Punkt lat={lat:.3f}, lon={lon:.3f}" if lat is not None and lon is not None else "Ã–sterreichâ€‘Mittel")
-    fig.update_layout(title=f"{var_label} â€” {where_txt} â€” {agg}")
+    return fig
     return fig
 
 
@@ -342,6 +337,114 @@ def create_app() -> Flask:
             year=year,
             year_bounds=year_bounds,
             files_present={k: os.path.exists(v) for k, v in _files_for_var(var_key).items()},
+        )
+
+    @app.route("/home")
+    def home():
+        # Simple landing form that redirects to /report
+        def _parse_float(val, default):
+            try:
+                return float(val)
+            except Exception:
+                return default
+        lat = _parse_float(request.args.get("lat", "48.208"), 48.208)
+        lon = _parse_float(request.args.get("lon", "16.374"), 16.374)
+        method = request.args.get("method", "nearest").lower()
+        agg = request.args.get("agg", "monthly").lower()
+        unit = request.args.get("unit", "C").upper()
+        year = request.args.get("year", "")
+        return render_template("home.html", lat=lat, lon=lon, method=method, agg=agg, unit=unit, year=year)
+
+    @app.route("/report")
+    def report():
+        # Collect inputs
+        def _parse_float(val, default):
+            try:
+                return float(val)
+            except Exception:
+                return default
+        def _clamp_at(lat, lon):
+            return max(46.0, min(50.0, lat)), max(9.0, min(18.0, lon))
+        lat = _parse_float(request.args.get("lat", "48.208"), 48.208)
+        lon = _parse_float(request.args.get("lon", "16.374"), 16.374)
+        lat, lon = _clamp_at(lat, lon)
+        method = request.args.get("method", "nearest").lower()
+        if method not in ("nearest", "linear"):
+            method = "nearest"
+        agg = request.args.get("agg", "monthly").lower()
+        if agg not in ("monthly", "annual"):
+            agg = "monthly"
+        unit = request.args.get("unit", "C").upper()
+        if unit not in ("C", "K"):
+            unit = "C"
+        year_bounds = _year_bounds_for("tas")
+        year_default = year_bounds[0] if year_bounds else None
+        year_param = request.args.get("year", str(year_default) if year_default else "")
+        try:
+            year = int(year_param) if year_param else None
+        except Exception:
+            year = year_default
+        if year is not None and year_bounds:
+            year = max(year_bounds[0], min(year_bounds[1], year))
+
+        # Helper to get point series DataArray
+        def _ts_point_da(path: str):
+            ds = xr.open_dataset(path)
+            var = _find_var(ds)
+            da = _convert_by_var(var, ds[var], unit=unit)
+            _m = method if method in ("nearest", "linear") else "nearest"
+            if _m == "linear" and not HAS_SCIPY:
+                _m = "nearest"
+            if _m == "nearest":
+                return da.sel(lat=lat, lon=lon, method="nearest")
+            try:
+                return da.interp(lat=lat, lon=lon, method="linear")
+            except Exception:
+                return da.sel(lat=lat, lon=lon, method="nearest")
+
+        # Summary: early vs. late means for all variables/scenarios
+        summary = {}
+        for var_key, files in DATASETS.items():
+            var_summary = {}
+            for scen in SCEN_LIST:
+                path = files.get(scen)
+                if not path or not os.path.exists(path):
+                    continue
+                ts = _ts_point_da(path)
+                t = ts["time"]
+                e0, e1 = 2015, 2034
+                l0, l1 = 2080, 2099
+                ts_early = ts.where((t.dt.year >= e0) & (t.dt.year <= e1), drop=True)
+                ts_late = ts.where((t.dt.year >= l0) & (t.dt.year <= l1), drop=True)
+                if ts_early.size == 0 or ts_late.size == 0:
+                    continue
+                m_early = float(ts_early.mean().values)
+                m_late = float(ts_late.mean().values)
+                units = ts.attrs.get("units", "")
+                var_summary[scen] = {"early": round(m_early, 2), "late": round(m_late, 2), "delta": round(m_late - m_early, 2), "units": units}
+            summary[var_key] = var_summary
+
+        # Charts for all variables
+        figs = {}
+        figs2 = {}
+        for var_key in ("tas", "sfcWind", "pr"):
+            figs[var_key] = build_figure(agg=agg, unit=unit, lat=lat, lon=lon, method=method, var_key=var_key).to_html(full_html=False, include_plotlyjs="cdn" if var_key == "tas" else False)
+            if year is not None:
+                figs2[var_key] = build_year_detail_figure(year=year, unit=unit, lat=lat, lon=lon, method=method, var_key=var_key).to_html(full_html=False, include_plotlyjs=False)
+
+        return render_template(
+            "report.html",
+            lat=lat,
+            lon=lon,
+            agg=agg,
+            unit=unit,
+            method=method,
+            year=year,
+            year_bounds=year_bounds,
+            summary=summary,
+            figs=figs,
+            figs2=figs2,
+            var_labels=VAR_LABELS,
         )
 
     return app

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CMIP6 Österreich — Report</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header>
+    <h1>Standort-Report</h1>
+    <p class="sub">lat={{ '%.3f'|format(lat) }}, lon={{ '%.3f'|format(lon) }} • {{ agg }} • {{ method }} • Einheit: {{ unit }}</p>
+  </header>
+
+  <section class="cards">
+    <h2>Kurzbericht</h2>
+    <div class="grid">
+      {% for vkey, vlabel in var_labels.items() %}
+      <div class="card">
+        <h3>{{ vlabel }}</h3>
+        {% set v = summary.get(vkey, {}) %}
+        {% if v %}
+          <ul>
+            {% for scen in ['ssp126','ssp245','ssp585'] %}
+              {% if v.get(scen) %}
+              <li>
+                <strong>{{ scen.upper() }}:</strong>
+                {{ v[scen]['late'] }} {{ v[scen]['units'] }} (2080–2099)
+                — Δ {{ v[scen]['delta'] }} vs. {{ v[scen]['early'] }} (2015–2034)
+              </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">Keine Daten gefunden.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="chart">
+    <h2>Temperatur (Zeitreihe)</h2>
+    {{ figs['tas'] | safe }}
+  </section>
+  {% if figs2.get('tas') %}
+  <section class="chart">
+    <h3>Temperatur — Monatswerte {{ year }}</h3>
+    {{ figs2['tas'] | safe }}
+  </section>
+  {% endif %}
+
+  <section class="chart">
+    <h2>Windgeschwindigkeit (Zeitreihe)</h2>
+    {{ figs['sfcWind'] | safe }}
+  </section>
+  {% if figs2.get('sfcWind') %}
+  <section class="chart">
+    <h3>Windgeschwindigkeit — Monatswerte {{ year }}</h3>
+    {{ figs2['sfcWind'] | safe }}
+  </section>
+  {% endif %}
+
+  <section class="chart">
+    <h2>Niederschlag (Zeitreihe)</h2>
+    {{ figs['pr'] | safe }}
+  </section>
+  {% if figs2.get('pr') %}
+  <section class="chart">
+    <h3>Niederschlag — Monatswerte {{ year }}</h3>
+    {{ figs2['pr'] | safe }}
+  </section>
+  {% endif %}
+
+  <footer>
+    <p>Hinweis: Trendlinien zeigen linearen Trend (pro Dekade). Niederschlag in mm/Tag, Wind in m/s, Temperatur gemäß gewählter Einheit. Methode „linear“ braucht SciPy, sonst „nearest“.</p>
+  </footer>
+</body>
+</html>
+

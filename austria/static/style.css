@@ -19,4 +19,8 @@ button{background:var(--accent);border-color:var(--accent);cursor:pointer}
 .status ul{list-style:none;padding:0;margin:0;display:flex;gap:16px}
 .chart{padding:8px 8px 24px}
 footer{padding:10px 24px;color:var(--muted);font-size:12px;border-top:1px solid #1f2937}
-
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;padding:8px 24px}
+.card{background:#0b1327;border:1px solid #1f2937;border-radius:8px;padding:14px}
+.card h3{margin:0 0 8px 0;font-size:16px}
+.muted{color:var(--muted)}
+.cards h2{padding:8px 24px;margin:0}
