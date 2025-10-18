@@ -1,0 +1,12 @@
+# Ignore Python caches and temp files
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+
+# Ignore local temp helpers
+.tmp_*.py
+
+# Do not commit the full original CMIP6 dataset folder
+Near-surface air temperature - Monatsbasis/
+
