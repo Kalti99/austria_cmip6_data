@@ -8,9 +8,9 @@
 </head>
 <body>
   <div class="nav">
-    <div class="brand">Climetrics <span class="chip">B2C Beta</span></div>
+    <div class="brand"><a href="{{ url_for('home') }}"><img src="{{ url_for('logo') }}" alt="Logo" style="height:24px"></a> <span class="chip">B2C Beta</span></div>
     <div>
-      <a href="{{ url_for('home') }}">Neuer Report</a>
+      <a href="{{ url_for('home') }}">Start</a>
       <a href="{{ url_for('index') }}">Charts</a>
     </div>
   </div>
@@ -93,7 +93,12 @@
   {% endif %}
 
   <footer>
-    <p>Hinweis: Trendlinien zeigen linearen Trend (pro Dekade). Niederschlag in mm/Tag, Wind in m/s, Temperatur gemäß gewählter Einheit. Methode „linear“ braucht SciPy, sonst „nearest“.</p>
+    <p>
+      <a href="{{ url_for('home') }}">Zur Startseite</a> •
+      <a href="#" onclick="alert('Impressum: Muster GmbH, Wien.'); return false;">Impressum</a> •
+      Daten: CMIP6 (Copernicus C3S) — <a href="https://cds.climate.copernicus.eu/" target="_blank">Copernicus Climate Data Store</a>.
+      Verwendete Modelle: AWI-CM-1-1-MR (Wind, Niederschlag). Temperaturvariable tas; genaue Quelle siehe NetCDF-Metadaten.
+    </p>
   </footer>
 </body>
 </html>

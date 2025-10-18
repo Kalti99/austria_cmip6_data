@@ -1,7 +1,7 @@
 ﻿import os
 import numpy as np
 import xarray as xr
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_file, Response
 import plotly.graph_objects as go
 
 # Optional SciPy for linear interpolation
@@ -13,6 +13,7 @@ except Exception:
 
 
 BASE_DIR = os.path.dirname(__file__)
+PUBLIC_DIR = os.path.join(os.path.dirname(BASE_DIR), "public")
 
 SCENARIOS = {
     "ssp126": os.path.join(BASE_DIR, "meantemp_ssp126_austria.nc"),
@@ -354,6 +355,37 @@ def create_app() -> Flask:
     @app.route("/")
     def root():
         return redirect(url_for("home"))
+
+    def _find_logo_file() -> str | None:
+        try:
+            if os.path.isdir(PUBLIC_DIR):
+                files = sorted(os.listdir(PUBLIC_DIR))
+                candidates = [f for f in files if f.lower().endswith((".png", ".svg", ".jpg", ".jpeg", ".webp"))]
+                if not candidates:
+                    return None
+                # Prefer files containing "logo"
+                for f in candidates:
+                    if "logo" in f.lower():
+                        return os.path.join(PUBLIC_DIR, f)
+                return os.path.join(PUBLIC_DIR, candidates[0])
+        except Exception:
+            return None
+        return None
+
+    @app.route("/logo")
+    def logo():
+        path = _find_logo_file()
+        if path and os.path.exists(path):
+            ext = os.path.splitext(path)[1].lower()
+            return send_file(path, conditional=True)
+        # Fallback minimal SVG
+        svg = """
+        <svg xmlns='http://www.w3.org/2000/svg' width='120' height='28'>
+          <rect width='120' height='28' fill='white'/>
+          <text x='6' y='19' font-family='Inter,Arial' font-size='14' fill='#0ea5a0'>Climetrics</text>
+        </svg>
+        """
+        return Response(svg, mimetype="image/svg+xml")
 
     @app.route("/home")
     def home():
