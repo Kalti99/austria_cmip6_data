@@ -292,7 +292,7 @@ def create_app() -> Flask:
 
     @app.route("/")
     def index():
-        agg = request.args.get("agg", "monthly").lower()
+        agg = request.args.get("agg", "annual").lower()
         if agg not in ("monthly", "annual"):
             agg = "monthly"
         unit = request.args.get("unit", "C").upper()
@@ -357,7 +357,7 @@ def create_app() -> Flask:
 
     @app.route("/home")
     def home():
-        # Simple landing form that redirects to /report
+        # Landing form with map; defaults to annual aggregation
         def _parse_float(val, default):
             try:
                 return float(val)
@@ -366,7 +366,7 @@ def create_app() -> Flask:
         lat = _parse_float(request.args.get("lat", "48.208"), 48.208)
         lon = _parse_float(request.args.get("lon", "16.374"), 16.374)
         method = request.args.get("method", "nearest").lower()
-        agg = request.args.get("agg", "monthly").lower()
+        agg = request.args.get("agg", "annual").lower()
         unit = request.args.get("unit", "C").upper()
         year = request.args.get("year", "")
         return render_template("home.html", lat=lat, lon=lon, method=method, agg=agg, unit=unit, year=year)
@@ -385,11 +385,11 @@ def create_app() -> Flask:
         lon = _parse_float(request.args.get("lon", "16.374"), 16.374)
         lat, lon = _clamp_at(lat, lon)
         method = request.args.get("method", "nearest").lower()
+        agg = request.args.get("agg", "annual").lower()
         if method not in ("nearest", "linear"):
             method = "nearest"
-        agg = request.args.get("agg", "monthly").lower()
         if agg not in ("monthly", "annual"):
-            agg = "monthly"
+            agg = "annual"
         unit = request.args.get("unit", "C").upper()
         if unit not in ("C", "K"):
             unit = "C"
