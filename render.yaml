@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: austria-cmip6
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: FLASK_DEBUG
+        value: "0"
+

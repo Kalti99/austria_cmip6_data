@@ -7,3 +7,4 @@ numpy>=1.26
 # Optional for linear interpolation in xarray.interp
 # scipy>=1.11
 
+gunicorn>=21.2
