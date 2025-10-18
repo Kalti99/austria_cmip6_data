@@ -156,7 +156,7 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
         else:
             x, y, units_label, t_num = _domain_mean_series(path, agg=agg, unit=unit)
         fig.add_trace(
-            go.Scatter(x=x, y=y, mode="lines", name=scen.upper(), line=dict(color=colors.get(scen)))
+            go.Scatter(x=x, y=y, mode="lines", name=scen.upper(), line=dict(color=colors.get(scen), width=1.6), opacity=0.75)
         )
 
         # Add linear trendline (least squares)
@@ -172,7 +172,7 @@ def build_figure(agg: str = "monthly", unit: str = "C", lat: float | None = None
                     y=y_fit,
                     mode="lines",
                     name=f"{scen.upper()} Trend ({slope_decade:+.2f} {units_txt}/Dekade)",
-                    line=dict(color=colors.get(scen), dash="dash"),
+                    line=dict(color=colors.get(scen), dash="dash", width=2.6),
                 )
             )
 

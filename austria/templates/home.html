@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="nav">
-    <div class="brand"><img src="{{ url_for('logo') }}" alt="Logo" style="height:24px"> <span class="chip">B2C Beta</span></div>
+    <div class="brand"><img src="{{ url_for('logo') }}" alt="Logo" style="height:24px"><span class="title">Climetrics</span> <span class="chip">Kostenloser Klimareport (Beta)</span></div>
     <div>
       <a href="{{ url_for('home') }}">Start</a>
       <a href="{{ url_for('index') }}">Charts</a>
@@ -29,7 +29,8 @@
     <form id="form" class="panel" method="get" action="{{ url_for('report') }}">
       <h2>Dein Standort</h2>
       <div class="row">
-        <label>Ort eingeben (Auto‑Vervollständigung)
+        <label class="search-wrap">Ort eingeben (Auto‑Vervollständigung)
+          <span class="icon">🔍</span>
           <input id="place" type="text" placeholder="z. B. Wien, Salzburg, Innsbruck" autocomplete="off" />
         </label>
         <div class="muted" style="align-self:end">Tipp: Klicke alternativ auf die Karte</div>
@@ -71,16 +72,16 @@
         </div>
       </details>
       <div class="actions">
-        <button id="btnSubmit" type="submit">📊 Standort‑Report anzeigen</button>
-        <a class="tool" href="{{ url_for('index') }}">Diagramme direkt ansehen</a>
+        <button id="btnSubmit" type="submit" class="btn-primary">🌍 Standort‑Report anzeigen</button>
+        <a class="tool btn-outline" href="{{ url_for('index') }}">📊 Diagramme direkt ansehen</a>
       </div>
-      <p class="muted" style="margin-top:10px">Gültiger Bereich: Österreich (lat 46–50, lon 9–18). „Linear“ fällt ohne SciPy automatisch auf „nearest“ zurück.</p>
+      <p class="muted" style="margin-top:10px">Keine Registrierung nötig. Daten sind bereits aufbereitet. Gültiger Bereich: Österreich (lat 46–50, lon 9–18). „Linear“ fällt ohne SciPy automatisch auf „nearest“ zurück.</p>
     </form>
   </section>
 
   <div id="loading" class="loading hidden">
     <div class="spinner"></div>
-    <div>Analysiere Daten für deinen Standort…</div>
+    <div>Analysiere Standortdaten…</div>
   </div>
 
   <!-- Leaflet & Geocoding Script -->
